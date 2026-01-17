@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Booster - PT Bangga Karya</title>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); width: 100%; max-width: 350px; text-align: center; border: 1px solid #333; position: relative; }
+        
+        /* Indikator Status Server */
+        .server-status { position: absolute; top: 15px; right: 15px; font-size: 12px; display: flex; align-items: center; gap: 5px; }
+        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
+        .dot-on { background-color: #28a745; box-shadow: 0 0 8px #28a745; }
+        .dot-off { background-color: #dc3545; box-shadow: 0 0 8px #dc3545; }
+
+        h2 { color: #fe2c55; margin-bottom: 5px; }
+        .info-text { color: #aaa; font-size: 14px; margin-bottom: 20px; }
+        .highlight { color: #00f2ea; font-weight: bold; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; box-sizing: border-box; outline: none; text-align: center; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #fe2c55; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        button:disabled { background: #444; cursor: not-allowed; color: #888; }
+        .status-box { margin-top: 20px; padding: 15px; background: #2a2a2a; border-radius: 8px; display: none; text-align: left; }
+        .badge { color: #fe2c55; font-weight: bold; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="server-status">
+        <span id="status-dot" class="dot dot-off"></span>
+        <span id="status-text">Server Offline</span>
+    </div>
+
+    <h2>TikTok Followers</h2>
+    <p class="info-text">Followers yang masuk: <span class="highlight">± 10 Followers</span></p>
+
+    <div id="form-area">
+        <input type="text" id="tiktok_user" placeholder="@username_tiktok">
+        <button id="btn_submit" onclick="kirimData()">Tambah Sekarang</button>
+    </div>
+
+    <div id="status-area" class="status-box">
+        <p>ID Order: <span id="res_id" class="badge"></span></p>
+        <p>Status: <span id="res_status" style="color:yellow; font-weight:bold;">Menunggu...</span></p>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCTvPUfC1xSlup78dtXfs0AFogOUheAi-E",
+        authDomain: "tikfoll.firebaseapp.com",
+        projectId: "tikfoll",
+        databaseURL: "https://tikfoll-default-rtdb.asia-southeast1.firebasedatabase.app/",
+        storageBucket: "tikfoll.firebasestorage.app",
+        messagingSenderId: "210219887620",
+        appId: "1:210219887620:web:ad7c29c37ff0f74f3ed951"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    db.ref('system_status').on('value', (snapshot) => {
+        const status = snapshot.val();
+        const isOff = status === 'OFF';
+        const dot = document.getElementById('status-dot');
+        const sText = document.getElementById('status-text');
+        const input = document.getElementById('tiktok_user');
+        const btn = document.getElementById('btn_submit');
+        
+        if(isOff) {
+            dot.className = "dot dot-off";
+            sText.innerText = "Server Offline";
+            input.disabled = true;
+            btn.disabled = true;
+            btn.innerText = "SISTEM OFF";
+        } else {
+            dot.className = "dot dot-on";
+            sText.innerText = "Server Online";
+            input.disabled = false;
+            btn.disabled = false;
+            btn.innerText = "Tambah Sekarang";
+        }
+    });
+
+    function kirimData() {
+        const user = document.getElementById('tiktok_user').value;
+        if(!user) return alert("Masukkan username!");
+        const orderId = 'BK-' + Math.floor(Math.random() * 89999 + 10000);
+        db.ref('orders/' + orderId).set({ username: user, status: 'Dalam Antrian', timestamp: Date.now() }).then(() => {
+            document.getElementById('form-area').style.display = 'none';
+            document.getElementById('status-area').style.display = 'block';
+            document.getElementById('res_id').innerText = orderId;
+            db.ref('orders/' + orderId + '/status').on('value', (snap) => {
+                const s = snap.val();
+                const statusEl = document.getElementById('res_status');
+                statusEl.innerText = s;
+                if(s === 'Berhasil') statusEl.style.color = '#00f2ea';
+                else if(s === 'Dalam Proses') statusEl.style.color = 'orange';
+            });
+        });
+    }
+</script>
+</body>
+</html>
