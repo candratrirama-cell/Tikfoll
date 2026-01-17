@@ -3,27 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok Booster - PT Bangga Karya</title>
+    <title>TikTok Likes - PT Bangga Karya</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .container { background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); width: 100%; max-width: 350px; text-align: center; border: 1px solid #333; position: relative; }
-        
-        /* Indikator Status Server */
-        .server-status { position: absolute; top: 15px; right: 15px; font-size: 12px; display: flex; align-items: center; gap: 5px; }
-        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
+        .server-status { position: absolute; top: 15px; right: 15px; font-size: 11px; display: flex; align-items: center; gap: 5px; }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
         .dot-on { background-color: #28a745; box-shadow: 0 0 8px #28a745; }
         .dot-off { background-color: #dc3545; box-shadow: 0 0 8px #dc3545; }
-
         h2 { color: #fe2c55; margin-bottom: 5px; }
-        .info-text { color: #aaa; font-size: 14px; margin-bottom: 20px; }
+        .rule-box { background: rgba(254, 44, 85, 0.1); border: 1px solid #fe2c55; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; color: #ff8fa3; }
+        .info-text { color: #aaa; font-size: 14px; margin-bottom: 15px; }
         .highlight { color: #00f2ea; font-weight: bold; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; box-sizing: border-box; outline: none; text-align: center; }
+        .antrian-badge { background: #333; padding: 10px; border-radius: 10px; margin: 10px 0; border: 1px solid #444; }
+        .nomor-urut { font-size: 24px; color: #00f2ea; font-weight: bold; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; box-sizing: border-box; outline: none; }
         button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #fe2c55; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        button:disabled { background: #444; cursor: not-allowed; color: #888; }
+        button:disabled { background: #444 !important; cursor: not-allowed; }
         .status-box { margin-top: 20px; padding: 15px; background: #2a2a2a; border-radius: 8px; display: none; text-align: left; }
-        .badge { color: #fe2c55; font-weight: bold; font-family: monospace; }
     </style>
 </head>
 <body>
@@ -31,20 +30,29 @@
 <div class="container">
     <div class="server-status">
         <span id="status-dot" class="dot dot-off"></span>
-        <span id="status-text">Server Offline</span>
+        <span id="status-text">Server...</span>
     </div>
 
-    <h2>TikTok Followers</h2>
-    <p class="info-text">Followers yang masuk: <span class="highlight">± 10 Followers</span></p>
+    <h2>TikTok Likes</h2>
+    <div class="rule-box">
+        <b>WAJIB FOLLOW:</b><br>
+        <a href="https://tiktok.com/@maramadhona" target="_blank" style="color:white; text-decoration:none;">@maramadhona</a>
+    </div>
+    
+    <p class="info-text">Like yang masuk: <span class="highlight">0 - 50 Random</span></p>
 
     <div id="form-area">
-        <input type="text" id="tiktok_user" placeholder="@username_tiktok">
-        <button id="btn_submit" onclick="kirimData()">Tambah Sekarang</button>
+        <input type="text" id="video_link" placeholder="Tempel link video TikTok">
+        <button id="btn_submit" onclick="kirimData()">Dapatkan Like</button>
     </div>
 
     <div id="status-area" class="status-box">
-        <p>ID Order: <span id="res_id" class="badge"></span></p>
-        <p>Status: <span id="res_status" style="color:yellow; font-weight:bold;">Menunggu...</span></p>
+        <div class="antrian-badge" id="box-antrian">
+            <div style="font-size: 12px; color: #888;">Antrian Saat Ini:</div>
+            <div class="nomor-urut" id="res_antrian">Menghitung...</div>
+        </div>
+        <p style="font-size: 14px;">ID: <span id="res_id" style="color:#fe2c55; font-family: monospace;"></span></p>
+        <p style="font-size: 14px;">Status: <span id="res_status" style="color:yellow; font-weight:bold;">Menunggu...</span></p>
     </div>
 </div>
 
@@ -62,44 +70,79 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    window.onload = function() {
+        const savedID = localStorage.getItem('order_likes_v2');
+        if(savedID) { tampilkanStatus(savedID); }
+    }
+
     db.ref('system_status').on('value', (snapshot) => {
-        const status = snapshot.val();
-        const isOff = status === 'OFF';
+        const isOff = snapshot.val() === 'OFF';
         const dot = document.getElementById('status-dot');
         const sText = document.getElementById('status-text');
-        const input = document.getElementById('tiktok_user');
-        const btn = document.getElementById('btn_submit');
+        dot.className = isOff ? "dot dot-off" : "dot dot-on";
+        sText.innerText = isOff ? "OFF" : "ON";
         
-        if(isOff) {
-            dot.className = "dot dot-off";
-            sText.innerText = "Server Offline";
-            input.disabled = true;
-            btn.disabled = true;
-            btn.innerText = "SISTEM OFF";
-        } else {
-            dot.className = "dot dot-on";
-            sText.innerText = "Server Online";
-            input.disabled = false;
-            btn.disabled = false;
-            btn.innerText = "Tambah Sekarang";
+        if(!localStorage.getItem('order_likes_v2')) {
+            document.getElementById('video_link').disabled = isOff;
+            document.getElementById('btn_submit').disabled = isOff;
+            if(isOff) document.getElementById('btn_submit').innerText = "SISTEM OFF";
         }
     });
 
     function kirimData() {
-        const user = document.getElementById('tiktok_user').value;
-        if(!user) return alert("Masukkan username!");
-        const orderId = 'BK-' + Math.floor(Math.random() * 89999 + 10000);
-        db.ref('orders/' + orderId).set({ username: user, status: 'Dalam Antrian', timestamp: Date.now() }).then(() => {
-            document.getElementById('form-area').style.display = 'none';
-            document.getElementById('status-area').style.display = 'block';
-            document.getElementById('res_id').innerText = orderId;
-            db.ref('orders/' + orderId + '/status').on('value', (snap) => {
-                const s = snap.val();
-                const statusEl = document.getElementById('res_status');
-                statusEl.innerText = s;
-                if(s === 'Berhasil') statusEl.style.color = '#00f2ea';
-                else if(s === 'Dalam Proses') statusEl.style.color = 'orange';
+        const link = document.getElementById('video_link').value;
+        if(!link.includes('tiktok.com')) return alert("Link TikTok tidak valid!");
+        
+        const orderId = 'LK-' + Math.floor(Math.random() * 8999 + 1000);
+        const timestamp = Date.now();
+        
+        db.ref('orders/' + orderId).set({ 
+            link: link, 
+            status: 'Dalam Antrian',
+            time: timestamp 
+        }).then(() => {
+            localStorage.setItem('order_likes_v2', orderId);
+            tampilkanStatus(orderId);
+        });
+    }
+
+    function tampilkanStatus(id) {
+        document.getElementById('form-area').style.display = 'none';
+        document.getElementById('status-area').style.display = 'block';
+        document.getElementById('res_id').innerText = id;
+        
+        db.ref('orders').on('value', (snapshot) => {
+            let allOrders = [];
+            let myOrder = null;
+
+            snapshot.forEach(child => {
+                const data = child.val();
+                if(data.status === 'Dalam Antrian') {
+                    allOrders.push({ id: child.key, time: data.time });
+                }
+                if(child.key === id) myOrder = data;
             });
+
+            if(!myOrder) {
+                localStorage.removeItem('order_likes_v2');
+                location.reload();
+                return;
+            }
+
+            allOrders.sort((a, b) => a.time - b.time);
+            const myPos = allOrders.findIndex(x => x.id === id) + 1;
+
+            document.getElementById('res_status').innerText = myOrder.status;
+            
+            if(myOrder.status === 'Dalam Antrian') {
+                document.getElementById('res_antrian').innerText = "Ke-" + myPos;
+                document.getElementById('box-antrian').style.display = 'block';
+            } else {
+                document.getElementById('box-antrian').style.display = 'none';
+                if(myOrder.status === 'Berhasil') document.getElementById('res_status').style.color = '#00f2ea';
+                if(myOrder.status === 'Gagal') document.getElementById('res_status').style.color = '#ff4d4d';
+                if(myOrder.status === 'Dalam Proses') document.getElementById('res_status').style.color = 'orange';
+            }
         });
     }
 </script>
