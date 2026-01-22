@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok Likes - PT Bangga Karya</title>
+    <title>TikTok Followers - PT Bangga Karya</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -19,10 +19,11 @@
         .highlight { color: #00f2ea; font-weight: bold; }
         .antrian-badge { background: #333; padding: 10px; border-radius: 10px; margin: 10px 0; border: 1px solid #444; }
         .nomor-urut { font-size: 24px; color: #00f2ea; font-weight: bold; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; box-sizing: border-box; outline: none; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: white; box-sizing: border-box; outline: none; text-align: center; }
         button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #fe2c55; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         button:disabled { background: #444 !important; cursor: not-allowed; }
         .status-box { margin-top: 20px; padding: 15px; background: #2a2a2a; border-radius: 8px; display: none; text-align: left; }
+        .footer-text { margin-top: 20px; font-size: 11px; color: #666; font-style: italic; }
     </style>
 </head>
 <body>
@@ -30,20 +31,20 @@
 <div class="container">
     <div class="server-status">
         <span id="status-dot" class="dot dot-off"></span>
-        <span id="status-text">Server...</span>
+        <span id="status-text">Checking...</span>
     </div>
 
-    <h2>TikTok Likes</h2>
+    <h2>TikTok Followers</h2>
     <div class="rule-box">
         <b>WAJIB FOLLOW:</b><br>
         <a href="https://tiktok.com/@maramadhona" target="_blank" style="color:white; text-decoration:none;">@maramadhona</a>
     </div>
     
-    <p class="info-text">Like yang masuk: <span class="highlight">0 - 50 Random</span></p>
+    <p class="info-text">Followers masuk: <span class="highlight">0 - 50 Random</span></p>
 
     <div id="form-area">
-        <input type="text" id="video_link" placeholder="Tempel link video TikTok">
-        <button id="btn_submit" onclick="kirimData()">Dapatkan Like</button>
+        <input type="text" id="tiktok_user" placeholder="@username_anda">
+        <button id="btn_submit" onclick="kirimData()">Tambah Sekarang</button>
     </div>
 
     <div id="status-area" class="status-box">
@@ -54,6 +55,8 @@
         <p style="font-size: 14px;">ID: <span id="res_id" style="color:#fe2c55; font-family: monospace;"></span></p>
         <p style="font-size: 14px;">Status: <span id="res_status" style="color:yellow; font-weight:bold;">Menunggu...</span></p>
     </div>
+
+    <div class="footer-text">Project by : @maramadhona</div>
 </div>
 
 <script>
@@ -71,7 +74,7 @@
     const db = firebase.database();
 
     window.onload = function() {
-        const savedID = localStorage.getItem('order_likes_v2');
+        const savedID = localStorage.getItem('order_foll_bk');
         if(savedID) { tampilkanStatus(savedID); }
     }
 
@@ -82,26 +85,26 @@
         dot.className = isOff ? "dot dot-off" : "dot dot-on";
         sText.innerText = isOff ? "OFF" : "ON";
         
-        if(!localStorage.getItem('order_likes_v2')) {
-            document.getElementById('video_link').disabled = isOff;
+        if(!localStorage.getItem('order_foll_bk')) {
+            document.getElementById('tiktok_user').disabled = isOff;
             document.getElementById('btn_submit').disabled = isOff;
             if(isOff) document.getElementById('btn_submit').innerText = "SISTEM OFF";
         }
     });
 
     function kirimData() {
-        const link = document.getElementById('video_link').value;
-        if(!link.includes('tiktok.com')) return alert("Link TikTok tidak valid!");
+        const user = document.getElementById('tiktok_user').value;
+        if(!user || user.length < 3) return alert("Username tidak valid!");
         
-        const orderId = 'LK-' + Math.floor(Math.random() * 8999 + 1000);
+        const orderId = 'BK-' + Math.floor(Math.random() * 8999 + 1000);
         const timestamp = Date.now();
         
         db.ref('orders/' + orderId).set({ 
-            link: link, 
+            username: user, 
             status: 'Dalam Antrian',
             time: timestamp 
         }).then(() => {
-            localStorage.setItem('order_likes_v2', orderId);
+            localStorage.setItem('order_foll_bk', orderId);
             tampilkanStatus(orderId);
         });
     }
@@ -124,7 +127,7 @@
             });
 
             if(!myOrder) {
-                localStorage.removeItem('order_likes_v2');
+                localStorage.removeItem('order_foll_bk');
                 location.reload();
                 return;
             }
